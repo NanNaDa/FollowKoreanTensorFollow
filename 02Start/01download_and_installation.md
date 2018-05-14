@@ -427,19 +427,27 @@ Please specify the location of python. [Default is /usr/bin/python]:
 Do you with to build TensorFlow with GPU support? [y/N] y
 GPU support will be enabled for TensorFlow
 
-Please specify which gcc nvcc should use a sthe host compiler. [Default is /usr/bin/gcc]: /usr/bin/gcc-4.9
+Please specify which gcc nvcc should use a sthe host compiler.
+[Default is /usr/bin/gcc]: /usr/bin/gcc-4.9
 
-Please specify the CUDA SDK version you want to use, e.g. 7.0. [Leave empty to use system default]: 7.5
+Please specify the CUDA SDK version you want to use, e.g. 7.0.
+[Leave empty to use system default]: 7.5
 
-Please specify the location where CUDA 7.5 toolkit is installed. Refer to README.md for more details. [default is: /usr/local/cuda]: /usr/local/cuda
+Please specify the location where CUDA 7.5 toolkit is installed.
+Refer to README.md for more details. [default is: /usr/local/cuda]: /usr/local/cuda
 
-Please specify the Cudnn version you want to use. [Leave empty to use system default]: 4.0.4
+Please specify the Cudnn version you want to use.
+[Leave empty to use system default]: 4.0.4
 
-Please specify the location where the cuDNN 4.0.4 library is installed. Refer to README.md for more details. [default is: /usr/local/cuda]: /usr/local/cudnn-r4-rc/
+Please specify the location where the cuDNN 4.0.4 library is installed.
+Refer to README.md for more details.
+[default is: /usr/local/cuda]: /usr/local/cudnn-r4-rc/
 
-Please specify a list of comma-separated Cuda compute capabilities you want to build with. You can find the compute capability of your device at:
+Please specify a list of comma-separated Cuda compute capabilities you want to build with.
+You can find the compute capability of your device at:
 https://developer.nvidia.com/cuda-gpus.
-Please note that each additional compute capability significantly increases your build time and binary size. [Default is: "3.5,5.2"]: 3.5
+Please note that each additional compute capability significantly increases your
+build time and binary size. [Default is: "3.5,5.2"]: 3.5
 
 Setting up Cuda include
 Setting up Cuda lib64
@@ -470,6 +478,57 @@ GPU 지원을 활성화하기 위해서는 "--config=cuda" 옵션이 필요합�
 **알려진 이슈**
 - 하나의 소스 트리에서 CUDA 와 non-CUDA 두가지 설정으로 모두 빌드가 가능하지만 설정을 바꾸려면 `bazel clean` 을 실행해 주세요.
 - bazel 빌드를 하기 전에 환경 설정을 해야 합니다. 그렇지 않으면 빌드가 실패합니다. 향후에는 빌드 프로세스 안에 환경 설정 단계를 포함시켜 좀 더 편리하게 만드려고 생각하고 있습니다.
+
+
+##### Mac OS X 설치
+bazel과 SWIG 설치를 위해서는 `homebrew`를 사용하고 easy_install 이나 pip를 사용하여 파이썬 라이브러리를 설치하길 권장합니다.
+
+물론 homebrew를 사용하지 않고 소스에서 Swig를 설치할 수도 있습니다. 그런 경우에 의존성 라이브러리인 `PCRE`를 설치해야 합니다. PCRE2가 아닙니다.
+
+###### 의존성 라이브러리
+bazel의 의존성 라이브러리를 설치하려면 `이곳`의 안내를 따르세요. bazel과 SWIG 설치를 위해 homebrew를 사용할 수 있습니다:
+```
+$ brew install bazel swig
+```
+
+easy_install이나 pip를 사용하여 파이썬 의존성을 설치할 수 있습니다. easy_install을 사용할 경우 아래를 실행합니다
+```
+$ sudo easy_install -U six
+$ sudo easy_install -U numpy
+$ sudo easy_install wheel
+```
+
+기능이 강화된 파이썬 쉘인 `ipython`을 권장합니다. 다음과 같이 설치합니다:
+```
+$ sudo easy_install ipython
+```
+
+GPU 지원이 되도록 빌드하려면 homebrew를 사용해 GNU coreutils가 설치되어 있어야 합니다:
+```
+$ brew install coreutils
+```
+
+다음은 `NVIDIA` 사이트에서 OSX 버전에 맞는 패키지를 다운로드 하거나 `Homebrew Cask` 확장을 사용하여 최신의 `CUDA Toolkit`을 설치해야 합니다:
+```
+$ brew tap caskroom/cask
+$ brew cask install cuda
+```
+
+CUDA 툴킷을 설치하면 필요한 환경 변수를 `~/.bash_profile` 파일에 아래와 같이 셋팅해야 합니다:
+```
+export CUDA_HOME=/usr/local/cuda
+export DYLD_LIBRARY_PATH="$DYLD_LIBRARY_PATH:$CUDA_HOME/lib"
+export PATH="$CUDA_HOME/bin:$PATH"
+```
+
+마지막으로 `Accelerated Computing Developer Program` 계정이 필요한 `CUDA Deep Neural Network` (cuDNN)를 설치할 수도 있습니다. 로컬 컴퓨터에 다운로드 받고 난 후 압축을 풀고 헤더 파일과 라이브러리를 CUDA 툴킷 폴더에 옮깁니다:
+```
+$ sudo mv include/cudnn.h /Developer/NVIDIA/CUDA-7.5/include/
+$ sudo mv lib/libcudnn* /Developer/NVIDIA/CUDA-7.5/lib
+$ sudo ln -s /Developer/NVIDIA/CUDA-7.5/lib/libcudnn* /usr/local/cuda/lib/
+```
+
+###### 설치환경 설정
 
 #### 텐서플로우 레파지토리 클론(Clone)
 
