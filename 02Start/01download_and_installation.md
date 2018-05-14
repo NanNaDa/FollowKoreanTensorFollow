@@ -529,6 +529,210 @@ $ sudo ln -s /Developer/NVIDIA/CUDA-7.5/lib/libcudnn* /usr/local/cuda/lib/
 ```
 
 ###### 설치환경 설정
+소스 트리 맨 위에서 `configure` 명령을 실행합니다. 이 스크립트는 파이썬 인터프리터의 경로를 묻습니다.
+
+이 단계에서 CUDA와 툴킷이 설치되어 있을 때 GPU 지원을 활성화 하는 것은 물론 파이썬과 numpy 헤더 파일들의 위치를 찾습니다. 예를 들면:
+
+```
+$ ./configure
+Please specify the location of python. [Default is /usr/bin/python]:
+Do you with to build TnesorFlow with Google Cloud Platform support? [y/N] N
+No Google Cloud Platform support will be enabled for TensorFlow
+Do you with to build TensorFlow with GPU support? [y/N] y
+GPU support will be enabled for TensorFlow
+Please specify which gcc nvcc should use as the host compiler. [Default is /usr/bin/gcc]:
+Please specify the Cuda SDK version you want to use, e.g. 7.0. [Leave empty to use system default]: 7.5
+Please specify the location where CUDA 7.5 toolkit is installed. Refer to README.md for more details. [Default is /usr/local/cuda]:
+Please specify the Cudnn versio you want to use. [Leave empty to use system default]: 5
+Please specify the location where cuDNN 5 library is installed. Refer to README.md for more details. [Default is /usr/local/cuda]:
+Please specify a list of comma-separated Cuda compute capabilities you want to build with.
+You can find the compute capability of your device at: https://developer.nvidia.com/cuda-gpus.
+Please note that each additional compute capability significantly increases your build time and binary size.
+[Default is: "3.5.5.2"]: 3.0
+Setting up Cuda include
+Setting up Cuda lib
+Setting up Cuda bin
+Setting up Cuda nvvm
+Setting up CUPTI include
+Setting up CUPTI lib64
+Configuration finished
+```
+
+###### pip 패키지 생성 및 설치
+소스에서 설치할 때 pip 패키지를 만들고 설치해야 합니다.
+```
+$ bazel build -c opt //tensorflow/tools/pip_package:build_pip_package
+
+# To build with GPU support:
+$ bazel build -c opt --config=cuda //tensorflow/tools/pip_package:build_pip_package
+
+$ bazel-bin/tensorflow/tools/pip_package/build_pip_package /tmp/tensorflow_pkg
+
+# The name of the .whl file will depend on your platform.
+$ sudo pip install /tmp/tensorflow_pkg/tensorflow-0.9.0-py2-none-any.whl
+```
+
+###### 텐서플로우 개발자 셋팅
+텐서플로우 자체를 수정할 때 텐서플로우를 재 설치하지 않고 파이썬 대화식 쉘에서 변경 내용을 테스트할 수 있다면 매우 유용할 것입니다.
+
+모든 파일이 시스템 디렉토리로 부터 링크(복사가 아닌)되도록 텐서플로우를 셋팅하기 위해서는 텐서플로우 루트 디렉토리에서 다음 명령을 실행합니다:
+```
+bazel build -c opt //tensorflow/tools/pip_package:build_pip_package
+
+# To build with GPU support:
+bazel build -c opt --configu=cuda //tensorflow/tools/pip_package:build_pip_package
+
+mkdir _python_build
+cd _python_build
+ln -s ../bazel-bin/tensorflow/tools/pip_package/build_pip_package.runfiles/org_tensorflow/* .
+ln -s ../tensorflow/tools/pip_package/* .
+python setup.py develop
+```
+
+C++ 파일을 변경하거나 어떤 파이썬 파일이든지 추가, 삭제, 이동될 때 혹은 bazel 빌드 룰을 바꿀 때마다 `//tensorflow/tools/pip_package:build_pip_package`을 다시 빌드해야 합니다.
+
+###### 텐서플로우로 첫번째 뉴럴 네트워크 모델을 학습 시키기
+소스 트리 루트에서 실행합니다:
+```
+$ cd tensorflow/models/image/mnist
+$ python convolutional.py
+Successfully downloaded train-images-idx3-ubyte.gz 9912422 bytes.
+Successfully downloaded train-labels-idx1-ubyte.gz 28881 bytes.
+Successfully downloaded t10k-images-idx3-ubyte.gz 1648877 bytes.
+Successfully downloaded t10k-labels-idx1-ubyte.gz 4542 bytes.
+Extracting data/train-images-idx3-ubyte.gz
+Extracting data/train-labels-idx1-ubyte.gz
+Extracting data/t10k-images-idx3-ubyte.gz
+Extracting data/t10k-labels-idx1-ubyte.gz
+Initialized!
+Epoch 0.00
+Minibatch loss: 12.054, learning rate: 0.010000
+Minibatch error: 90.6%
+Validation error: 84.6%
+Epoch 0.12
+Minibatch loss: 3.285, learning rate: 0.010000
+Minibatch error: 6.2%
+Validation error: 7.0%
+...
+...
+```
+
+#### 자주 발생하는 문제
+##### GPU 관련 이슈들
+텐서플로우 프로그램을 실행할 때 다음과 같은 에러를 만날 경우:
+```
+ImportError: libcudart.so.7.0: cannot open shared object file: No such file of directory
+```
+
+GPU 설치 `가이드`를 따랐는지 확인하세요. 소스에서 설치할 때 CUDA나 CuDNN 버전은 비워둔 채 진행했다면 명시적으로 지정하여 다시 시도해 보셍.
+
+##### Protobuf 라이브러리 관련 이슈들
+텐서플로우 pip패키지는 protobuf pip 패키지 버전 3.0.0b2를 필요로 합니다. `PyPI`에서 다운받을 수 있는(`pip install protobuf`를 사용해서) Protobuf의 pip 패키지는 파이썬 만으로 개발된 라이브러리로 C++ 구현보다 직렬화/역직렬화시 10~50배 느립니다. Protobuf는 빠른 프로토콜 파싱을 위한 C++ 바이너리 확장을 지원합니다. 이 확장은 표준 파이썬 PIP 패키지에는 포함되어 있지 않습니다. 우리는 이 바이너리 확장을 포함한 protobuf pip 패키지를 자체적으로 만들었습니다. 다음 명령을 사용해 자체적으로 만든 protobuf pip 패키지를 설치할 수 있습니다:
+```
+# Ubuntu/Linux 64-bit:
+$ pip install --upgrade https://storage.googleapis.com/tensorflow/linux/cpu/protobuf-3.0.0b2.post2-cp27-none-linux_x86_64.whl
+
+# Mac OS X:
+$ pip install --upgrade https://storage.googleapis.com/tensorflow/mac/protobuf-3.0.0b2.post2-cp27-none-any.whl
+```
+
+Python 3  에서는 :
+```
+# Ubuntu/Linux 64-bit:
+$ pip3 install --upgrade https://storage.googleapis.com/tensorflow/linux/cpu/protobuf-3.0.0b2.post2-cp34-none-linux_x86_64.whl
+
+# Mac OS X:
+$ pip3 install --upgrade https://storage.googleapis.com/tensorflow/mac/protobuf-3.0.0b2.post2-cp35-none-any.whl
+```
+
+`pip install tensorflow` 명령은 파이썬으로된 기본 pip 패키지를 설치하므로 위 패키지를 설치하려면 반드시 텐서플로우를 설치하고 난 후에 합니다. 위 pip 패키지는 이미 설치된 protobuf 패키지를 덮어 씁니다. 바이너리 pip 패키지는  64M 넘는 메세지에 대한 지원을 이미 하고 있어 아래와 같은 에러가 이미 해결 되었습니다:
+```
+[libprotobuf ERROR google/protobuf/src/google/protobuf/io/coded_stream.cc:207] A
+protocol message was rejected because it was too big (more than 67107764 bytes).
+To increase th limit (or to disable these warnings), ses
+CodedInputStream::SetTotalBytesLimit() in google/protobuf/io/coded_stream.h.
+```
+
+#### Pip 설치 이슈들
+**Cannot import name 'descriptor'**
+```
+ImportError: Trackback (most recent call last):
+    File "/usr/local/lib/python3.4/dist-packages/tensorflow/core/framework/graph_pb2.py", line 6, in <module>
+        from google.protobuf import descriptor as _descriptor
+ImportError: cannot import name 'descriptor'
+```
+
+최신 버전의 텐서플로우로 업그레이드할 때 위와 같은 에러가 발생하면 텐서플로우와 protobuf를 모두 언인스톨하고 텐서플로우를 다시 재설치합니다(올바른 protobuf 의존성을 찾기 위해서).
+
+**Can't find setup.py**
+`pip install`하는 동안 아래와 같은 에러를 만나면:
+```
+...
+IOError: [Errno 2] No such file or directory: '/tmp/pip-o6Tpui-build/setup.py'
+```
+
+해결책: pip를 업그레이드 합니다:
+```
+pip install --upgrade pip
+```
+
+pip 설치가 어떻게 되어 있느냐에 따라 `sudo`를 필요로 할지 모릅니다.
+
+**SSLError: SSL_VERIFY_FAILED**
+URL로 부터 pip 인스톨을 하는 동안 아래와 같은 에러를 만나면:
+```
+...
+SSLError: [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed
+```
+
+해결책: curl이나 wget으로 수동으로 wheel을 다운로드 받아 로컬에서 pip install 합니다.
+
+**Operation not permitted**
+`sudo`를 사용함에도 아래와 같은 에러를 만나면:
+```
+...
+Installing collected packages: setuptools, protobuf, wheel, numpy, tensorflow
+Found existing installation: setuptools 1.1.6
+Uninstalling setuptools-1.1.6:
+Exception:
+...
+[Errno 1] Operation not permitted: '/tmp/pip-a1DXRT-uninstall/System/Library/Frameworks/Python.framework/Versions/2.7/Extras/lib/python/_markerlib'
+```
+
+해결책: pip 명령에 `--ignore-installed` 플래그를 추가합니다.
+
+##### Linux 이슈들
+이런 에러가 나오면:
+```
+...
+    "__add__", "__radd__",
+                ^
+SyntaxError: invalid syntax
+```
+
+해결책: 파이썬 2.7을 사용하고 있느지 확인합니다.
+
+
+##### Mac OS X: ImportError: No module named copyreg
+Mac OS X에서 텐서플로우를 임포트할 때 아래와 같은 에러가 나올 수 있습니다.
+```
+>>> import tensorflow as tf
+...
+ImportError: No module named copyreg
+```
+
+해결책: 텐서플로우는 `six-1.10.0 `파이썬 패키지를 필요로하는 protobuf에 의존성이 있습니다. 애플의 기본 파이썬 설치에는 `six-1.4.1`이 제공됩니다.
+
+다음과 같은 방법으로 이를 해결 할 수 있습니다:
+- 최신 버전의 `six`로 업그레이드 합니다:
+```
+$ sudo easy_install -U six
+```
+
+- 별도의 파이썬 환경에서 텐서플로우를 설치합니다:
+-- `Virtualenv` 사용.
+-- `Docker`사용.
+- `Homebrew`나 `MacPorts`를 사용하여 별도의 파이썬 버전을 설치한 후 텐서플로우를 그 파이썬에서 재 설치합니다.
 
 #### 텐서플로우 레파지토리 클론(Clone)
 
