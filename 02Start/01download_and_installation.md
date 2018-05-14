@@ -283,10 +283,194 @@ NVidia GPU를 위해서는 최신 NVidia 드라이버와 `nvidia-docker`를 설�
 $ nvidia-docker run -it -p 8888:8888 gcr.io/tensorflow/tensorflow:latest-gpu
 ```
 
+더 자세한 것은 `텐서플로우 도커` 문서를 참고하세요.
 
+도커 컨테이너 안에서 `설치 테스트`를 할 수 있습니다.
+
+#### 텐서플로우 설치 테스트
+##### (선택사항, Linux) GPU 활성화
+텐서플로우 GPU 버전을 설치했다면 반드시 CUDA Toolkit 7.5 와 CuDNN v4 도 설치해야 합니다. `CUDA  설치`을 참고하세요.
+
+`LD_LIBRARY_PATH` 와 `CUDA_HOME` 환경 변수를 지정해야 합니다. 아래 명령을 `~/.bash_profile` 파일에 추가하는 것이 좋습니다. 이 명령은 `/usr/local/cuda` 에 CUDA가 설치되어있다고 가정한 것입니다:
+```
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:/usr/local/cuda/lib64"
+export CUDA_HOME=/usr/local/cuda
+```
+
+
+##### 커맽드 라인에서 텐서플로우 실행하기
+에러가 발생하면 `자주 발생하는 문제` 섹션을 참고하세요.
+
+터미널을 열고 아래 명령을 실행합니다:
+```
+$ python
+...
+>>> import tensorflow as tf
+>>> hello = tf.constant('Hello, TensorFlow!')
+>>> sess = tf.Session()
+>>> print(sess.run(hello))
+Hello, TensorFlow!
+>>> a = tf.constant(10)
+>>> b = tf.constant(32)
+>>> print(sess.run(a + b))
+42
+>>>
+```
+
+##### 텐서플로우 데모 모델 실행
+데모 모델을 포함해 텐서플로우의 모든 패키지는 파이썬 파이브러리로 설치되어 있습니다. 파이썬 파이브러리의 정확한 경로는 설치된 시스템마다 다릅니다. 하지만 보통 아래 중에 하나일 것입니다:
+```
+/usr/local/lib/python2.7/dist-packages/tensorflow
+/usr/local/lib/python2.7/site-packages/tensorflow
+```
+
+아래 명령으로 정확한 디렉토리를 찾을 수 있습니다(텐서플로우를 설치한 파이썬을 사용해야 합니다. 예를 들면 파이썬 3에서 텐서플로우를 설치했다면 `python` 대신 `python3`  를 사용해야 합니다):
+```
+$ python -c 'import os; import inspect; import tensorflow; print(os.path.dirname(inspect.getfile(tensorflow)))'
+```
+
+MNIST 데이터셋을 이용한 손글씨 숫자를 분류하는 간단한 데모 모델은 `models/image/mnist/convolutional.py`에 있습니다. 커맨드라인에서 다음과 같이 실행시킬 수 있습니다(텐서플로우를 설치한 파이썬인지 확인하세요):
+```
+# 파이썬 검색 범위에서 프로그램을 찾기 위해서 `python -m` 명령을 이용합니다:
+$ python -m tensorflow.models.image.mnist.convolutional
+Extracting data/train-images-idx3-ubyte.gz
+Extracting data/train-labels-idx1-ubyte.gz
+Extracting data/t10k-images-idx3-ubyte.gz
+Extracting data/t10k-labels-idx1-ubyte.gz
+...etc...
+
+# 파이썬 인터프리터에 모델 프로그램의 파일 경로를 전달할 수 있습니다.
+# (텐서플로우가 설치된 파이썬 버전을 사용해야 합니다.
+# 예를 들어, 파이썬 3의 경우는 .../python3.X/... 가 됩니다.).
+$ python /usr/local/lib/python2.7/dist-packages/tensorflow/models/image/mnist/convolutional.py
+...
+```
 
 
 ### 소스에서 설치
+소스에서 설치하려면 pip를 사용해서 진행할 수 있도록 pip 휠(wheel)을 만듭니다. pip를 설치하려면 `Pip 설치` 섹션을 참고하세요.
+
+#### 텐서플로우 레파지토리 클론(Clone)
+```
+$ git clone https://github.com/tensorflow/tensorflow
+```
+
+아래 방법은 최신 마스터 브랜치의 텐서플로우를 설치하는 것입니다. 만약 특정 브랜치(릴리즈 브랜치 같은)를 설치하고 싶다면 `git clone` 명령에 `-b <branchname>` 옵션을 추가하고 r0.8 과 그 이전 버전에서는 protobuf 라이브러리를 추가하기 위해 `--recurse-submodules` 옵션을 추가합니다.
+
+#### 리눅스 설치
+##### Bazel 설치
+Bazel에 필요한 소프트웨어를 `여기`를 따라 설치합니다. `자신의 컴퓨터에 맞는 인스톨러`를 사용하여 최신 안정버전의 bazel을 다운로드 하여 아래와 같이 실행합니다:
+```
+$ chmod +x PATH_TO_INSTALL.SH
+$ ./PATH_TO_INSTALL.SH --user
+```
+
+`PATH_TO_INSTALL.SH` 부분을 다운로드 받은 인스톨러의 경로를 바꾸어 줍니다.
+
+마지막으로 실행 경로에 `bazel`을 추가하기 위해 화면의 설명을 따릅니다.
+
+##### 다른 의존성 라이브러리 설치
+```
+# Python 2.7:
+$ sudo apt-get install python-numpy swig python-dev python-wheel
+
+# Python 3.x:
+$ sudo apt-get install python3-numpy swig python3-dev python3-wheel
+```
+
+##### 설치환경 설정
+루트 디렉토리에 있는 `configure` 스크립트를 실행합니다. 환경설정 스크립트는 파이썬 인터프리터의 경로를 요청하고 (선택사항으로)CUDA 라이브러리를 설정합니다(`아래`를 참고하세요).
+
+이 단계에서는 파이썬과 넘파이(numpy) 헤더파일을 찾습니다.
+```
+$ ./configure
+$ Please specify the location of python. [Default is /usr/bin/python]:
+```
+
+##### 선택사항: CUDA 설치 (리눅스 GPU)
+GPU 버전의 텐서플로우를 설치하고 실행하기 위해서는 엔비디아(NVIDIA)의 쿠다 툴킷(CUDA Toolkit)(>=7.0)과 CuDNN(>= v2)을 설치해야 합니다.
+
+텐서플로우 GPU 버전은 엔비디아(NVidia)의 Compute Capability >= 3.0 이상을 지원하는 GPU 카드를 필요로 합니다. 지원되는 카드는 아래 목록을 포함하고 있습니다:
+- NVidia Titan
+- NVidia Titan X
+- NVidia K20
+- NVidia K40
+
+**GPU 카드의 NVIDIA Compute Capability 체크**
+https://developer.nvidia.com/cuda-gpus
+
+**CUDA Toolkit 다운로드 및 설치**
+https://developer.nvidia.com/cuda-downloads
+
+텐서플로우의 바이너리 릴리즈를 사용하려면 버전 7.5를 설치하세요
+
+`/usr/local/cuda` 등에 툴킷을 설치합니다.
+
+**CuDNN 다운로드 및 설치**
+https://developer.nvidia.com/cudnn
+
+CuDNN v4를 다운로드합니다(v5는 현재 릴리즈 후보 상태로 텐서플로우를 소스에서 설치할 때만 사용할 수 있습니다).
+
+압축을 풀어 툴킷 디렉토리에 CuDNN 파일을 복사합니다. `/usr/local/cuda`에 툴킷이 설치되어 있다고 가정하고 아래 명령을 실행합니다(다운로드 받은 CuDNN의 적절한 버전을 반영해 주세요):
+```
+tar xvzf cudnn-7.5-linux-x64_v4.tgz
+sudo cp cudnn-7.5-linux-x64-v4/cudnn.h /usr/local/cudnn/include
+sudo cp cudnn-7.5-linux-x64-v4/libcudnn* /usr/local/cuda/lib64
+sudo chmod a+r /usr/local/cuda/include/cudnn.h /usr/local/cuda/lib64/libcudnn*
+```
+
+**텐서플로우에서 CUDA 라이브러리 선택**
+소스 디렉토리의 맨 위에서 `configure` 스크립트를 실행하고 텐서플로우 GPU 지원하도록 빌드할 지 물어볼 때 `Y`를 선택하세요. 만약 여러가지 버전의 CUDA와 CuDNN이 설치되어 있다면 디폴트 대신 구체적으로 어떤 버전을 사용할지 지정해야 합니다. 아래와 같은 질문들을 보게됩니다.
+```
+$ ./configure
+Please specify the location of python. [Default is /usr/bin/python]:
+Do you with to build TensorFlow with GPU support? [y/N] y
+GPU support will be enabled for TensorFlow
+
+Please specify which gcc nvcc should use a sthe host compiler. [Default is /usr/bin/gcc]: /usr/bin/gcc-4.9
+
+Please specify the CUDA SDK version you want to use, e.g. 7.0. [Leave empty to use system default]: 7.5
+
+Please specify the location where CUDA 7.5 toolkit is installed. Refer to README.md for more details. [default is: /usr/local/cuda]: /usr/local/cuda
+
+Please specify the Cudnn version you want to use. [Leave empty to use system default]: 4.0.4
+
+Please specify the location where the cuDNN 4.0.4 library is installed. Refer to README.md for more details. [default is: /usr/local/cuda]: /usr/local/cudnn-r4-rc/
+
+Please specify a list of comma-separated Cuda compute capabilities you want to build with. You can find the compute capability of your device at:
+https://developer.nvidia.com/cuda-gpus.
+Please note that each additional compute capability significantly increases your build time and binary size. [Default is: "3.5,5.2"]: 3.5
+
+Setting up Cuda include
+Setting up Cuda lib64
+Setting up Cuda bin
+Setting up Cuda nvvm
+Setting up CUPTI include
+Setting up CUPTI lib64
+Configuration finished
+```
+
+시스템에는 있는 CUDA 라이브러리를 가리키는 기본으로 사용할 심볼릭 링크들을 만듭니다. Bazel 빌드 명령을 실행하기 전에 CUDA 라이브러리 경로를 바꾸게 되면 이 단계를 다시 거쳐야 합니다. CuDNN 라이브러리 R2 sms '6.5'를 R3는 '7.0'을 R4-RC는 '4.0.4'를 선택합니다.
+
+**GPU를 지원하도록 빌드하기**
+소스 트리 맨 위에서 실행:
+```
+$ bazel build -c opt --config=cuda //tensorflow/cc:tutorials_example_trainer
+
+$ bazel-bin/tensorflow/cc/tutorials_example_trainer --use_gpu
+# 많은 출력이 나옵니다. 이 튜토리얼은 GPU에서 2x2 행렬의 고유값을 반복해서 계산합니다.
+# 마지막 몇 줄은 아래와 같습니다.
+000009/000005 lambda = 2.00000 x = [0.894427 -0.447214] y = [1.788854 -0.894427]
+000006/000001 lambda = 2.00000 x = [0.894427 -0.447214] y = [1.788854 -0.894427]
+000009/000009 lambda = 2.00000 x = [0.894427 -0.447214] y = [1.788854 -0.894427]
+```
+
+GPU 지원을 활성화하기 위해서는 "--config=cuda" 옵션이 필요합니다.
+
+**알려진 이슈**
+- 하나의 소스 트리에서 CUDA 와 non-CUDA 두가지 설정으로 모두 빌드가 가능하지만 설정을 바꾸려면 `bazel clean` 을 실행해 주세요.
+- bazel 빌드를 하기 전에 환경 설정을 해야 합니다. 그렇지 않으면 빌드가 실패합니다. 향후에는 빌드 프로세스 안에 환경 설정 단계를 포함시켜 좀 더 편리하게 만드려고 생각하고 있습니다.
+
 #### 텐서플로우 레파지토리 클론(Clone)
 
 
